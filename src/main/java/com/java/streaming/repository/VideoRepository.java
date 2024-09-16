@@ -10,6 +10,6 @@ import com.java.streaming.entity.Video;
 @Repository
 public interface VideoRepository  extends JpaRepository<Video, String>{
 
-    Optional<Video> findbyTitle(String title);
+    Optional<Video> findByTitle(String title);
     
 }
