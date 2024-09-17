@@ -13,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -58,18 +59,10 @@ public class VideoServiceImpl implements VideoService {
     }
 
     public void initHSL(){
-        File file = new File(HSL_DIR);
-        if(!file.exists()){
-            if(file.mkdir()){
-                logger.info("HSL Folder Created !!");
-            }
-            else
-            {
-                logger.info("HSL Folder Not Created!!");
-            }
-        }
-        else {
-            logger.info("HSL Folder Already Created !!");
+        try {
+            Files.createDirectories(Paths.get(HSL_DIR));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
