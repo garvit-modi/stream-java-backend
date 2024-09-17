@@ -32,6 +32,9 @@ public class VideoServiceImpl implements VideoService {
     @Value("${files.video}")
     String DIR ;
 
+    @Value("${files.video.hsl")
+    String HSL_DIR ;
+
     public VideoServiceImpl(VideoRepository videoRepository) {
         this.videoRepository = videoRepository;
     }
@@ -50,6 +53,23 @@ public class VideoServiceImpl implements VideoService {
         }
         else {
             logger.info("Folder Already Created !!");
+        }
+        initHSL();
+    }
+
+    public void initHSL(){
+        File file = new File(HSL_DIR);
+        if(!file.exists()){
+            if(file.mkdir()){
+                logger.info("HSL Folder Created !!");
+            }
+            else
+            {
+                logger.info("HSL Folder Not Created!!");
+            }
+        }
+        else {
+            logger.info("HSL Folder Already Created !!");
         }
     }
 
@@ -72,7 +92,9 @@ public class VideoServiceImpl implements VideoService {
 
            Files.copy(inputStream, path, StandardCopyOption.REPLACE_EXISTING);
 
-           return    videoRepository.save(video);
+           var videoSave = videoRepository.save(video);
+           processVideo(videoSave.getVideoId());
+           return videoSave;
 
 
        } catch (Exception e) {
@@ -106,12 +128,34 @@ public class VideoServiceImpl implements VideoService {
         return videoRepository.findAll();
     }
 
-    /**
-     * @param videoId
-     * @return
-     */
+
     @Override
     public String processVideo(String videoId) {
+
+        Video video = this.get(videoId);
+
+        Path videoPath = Paths.get(video.getFilePath());
+
+        try{
+            Path outputPath = Paths.get(HSL_DIR, videoId);
+            String ffmpegCmd = String.format(
+                    "ffmpeg -i \"%s\" -c:v libx264 -c:a aac -strict -2 -f hls -hls_time 10 -hls_list_size 0 -hls_segment_filename \"%s/segment_%%3d.ts\"  \"%s/master.m3u8\" ",
+                    videoPath, outputPath, outputPath
+            );
+
+            logger.info("FFMPEG COMMAND !! {}", ffmpegCmd);
+            ProcessBuilder processBuilder = new ProcessBuilder("/bin/bash", "-c", ffmpegCmd);
+            processBuilder.inheritIO();
+            Process process = processBuilder.start();
+            int exit = process.waitFor();
+            if(exit != 0){
+                throw new RuntimeException("Video Processing Failed!!");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+
         return "";
     }
 }
